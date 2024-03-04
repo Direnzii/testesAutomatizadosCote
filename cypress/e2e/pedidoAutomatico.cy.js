@@ -1,45 +1,38 @@
-import * as untilAutoOrder from "../functions/funcPedidoAuto.js";
-import * as util from "../functions/utils.js";
-import * as utilModal from "../functions/validarModais.js";
+import * as pedidoAuto from "../functions/pedidoAutomatico/pedidoAutomatico";
+import * as utils from "../functions/utils/utils";
+import * as pedidoManual from "../functions/pedidoManual/pedidoManual";
+import { textBotaoPedidoAuto } from "../functions/utils/constants";
+import except from "../functions/utils/except";
+import { PEDIDOAUTOMATICO, URL_AMPLIFY } from "../functions/utils/envVariaveis";
 
-describe("Realizar o processamento do pedido automático", () => {
-    it('Deve processar utilizando "pedido automatico" e aguardar até o final do processamento, depois reiniciar o pedido e alterar o vencimenteo da cotação', () => {
-        util.acessarProcessarPedido();
-        utilModal.reiniciarPedidoAlterarVencimento(false); //fora do pedido = false
+const login = (cotacao) => {
+    cy.session(["pedidoAutomatico"], () => {
+        utils.acessarProcessarPedido(textBotaoPedidoAuto, cotacao);
     });
-    it("Deve validar a visibilidade de todos os elementos da tela do pedido automático", () => {
-        util.acessarProcessarPedido();
-        untilAutoOrder.validarBotoesPedidoAuto();
-        utilModal.reiniciarPedidoAlterarVencimento(false);
-    });
-});
+};
 
-describe("Validação basica do filtro e da ordenação na tela do pedido automático", () => {
+describe("Realizar o processamento e checagens do pedido automático", () => {
+    beforeEach(() => {
+        login(PEDIDOAUTOMATICO);
+        cy.visit(`${URL_AMPLIFY}/pedido-automatico/${PEDIDOAUTOMATICO}`);
+        except();
+    });
+    it("Deve validar a visibilidade dos elementos da aba filtrar produtos da tela do pedido automático", () => {
+        pedidoAuto.validarBotoesPedidoAuto();
+    });
     it("Deve abrir o acordeon de analise do pedido e realizar ordenações", () => {
-        util.acessarProcessarPedido();
-        untilAutoOrder.abrirAcordeonPrimeiroPedido();
-        untilAutoOrder.validarOrdenacaoPedidoAutomatico();
-        utilModal.reiniciarPedidoAlterarVencimento(false);
+        pedidoAuto.abrirAcordeonPrimeiroPedido();
+        pedidoAuto.clicarEmTodasOrdenacoesPedidoAuto();
     });
     it("Deve pegar o EAN, Código, Descrição e Fabricante, filtrar no input e validar o resultado do filtro", () => {
-        util.acessarProcessarPedido();
-        untilAutoOrder.abrirAcordeonPrimeiroPedido();
-        untilAutoOrder.validacaoDoFiltroPedidoAuto();
-        utilModal.reiniciarPedidoAlterarVencimento(false);
+        pedidoAuto.abrirAcordeonPrimeiroPedido();
+        pedidoAuto.validacaoDoFiltroPedidoAuto();
     });
-});
-
-describe("Validação da aba de produtos excluídos", () => {
-    it("Deve excluir um produto específico, acessar a tela de produtos excluídos e validar se se trata do mesmo item e ao final, reiniciar o pedido", () => {
-        util.acessarProcessarPedido();
-        untilAutoOrder.abrirAcordeonPrimeiroPedido();
-        untilAutoOrder.telaProdutosExcluidos();
-        utilModal.reiniciarPedidoAlterarVencimento(false);
+    it("Deve excluir um produto aleatorio utilizando o filtro e o check geral e validar se o mesmo não consta no pedido, ao final reiniciar o pedido", () => {
+        pedidoAuto.abrirAcordeonPrimeiroPedido();
+        pedidoAuto.validarExclusaoPedidoAutomatico();
     });
-    it('Deve excluir um item, realizar a validação da tela "produtos excluidos" e na sequência inserir novamente o item ao pedido e validar se consta no pedido novamente', () => {
-        util.acessarProcessarPedido();
-        untilAutoOrder.abrirAcordeonPrimeiroPedido();
-        untilAutoOrder.telaProdutosExcluidos(true); // inserir = true
-        utilModal.reiniciarPedidoAlterarVencimento(false);
+    it("Deve acessar o pedido manual pelo pedido automatico, com todos os itens e depois reiniciar o pedido", () => {
+        pedidoManual.acessarPedidoManualTodosProdutos();
     });
 });
